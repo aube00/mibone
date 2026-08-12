@@ -1,0 +1,17 @@
+<service>
+  <id>mihomo</id>
+  <name>mihomo</name>
+  <description>mihomo proxy service (managed by Mibone)</description>
+  <executable>%BASE%\mihomo.exe</executable>
+  <arguments>-d .</arguments>
+  <log mode="rotate">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>3</keepFiles>
+  </log>
+  <onfailure action="restart" delay="5 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>false</delayedAutoStart>
+</service>

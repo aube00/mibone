@@ -1,0 +1,17 @@
+# ============================================================
+# Mibone 订阅配置
+# ============================================================
+# 首次使用：复制此文件为 subscriptions.yaml
+#   copy subscriptions.example.yaml subscriptions.yaml
+#
+# 或直接运行 mibone init，交互式引导会自动生成此文件。
+# ============================================================
+
+subscriptions:
+  - name: "我的订阅"                              # 订阅名称，自定义
+    url: "https://example.com/sub?token=YOUR_TOKEN" # 订阅地址，从机场获取
+
+  # 多个订阅：取消注释并填入
+  # - name: "备用订阅"
+  #   url: "https://example2.com/sub?token=YOUR_TOKEN"
+  #   user-agent: "ClashForWindows"  # 可选：某些机场要求特定 UA

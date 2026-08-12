@@ -18,12 +18,22 @@ bin/mihomo.exe
 bin/mihomo-service.exe
 bin/Country.mmdb
 bin/geoip.dat
+bin/geoip.metadb
 bin/geosite.dat
 bin/GeoLite2-ASN.mmdb
 bin/ui/
 
 # Cache
 cache/
+bin/providers/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.ruff_cache/
 
 # OS
 Thumbs.db
