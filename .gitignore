@@ -1,0 +1,31 @@
+# Claude Code harness (not part of the project deliverable)
+CLAUDE.md
+TASKS.md
+rules/
+.claude/
+
+# User config (contains subscription URLs and secrets)
+subscriptions.yaml
+override.yaml
+
+# Generated output
+bin/config.yaml
+bin/cache.db
+bin/*.log
+
+# Binary files (downloaded by setup)
+bin/mihomo.exe
+bin/mihomo-service.exe
+bin/Country.mmdb
+bin/geoip.dat
+bin/geosite.dat
+bin/GeoLite2-ASN.mmdb
+bin/ui/
+
+# Cache
+cache/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

@@ -1,0 +1,494 @@
+# ============================================================
+# mihomo-bare override 配置模板
+# ============================================================
+#
+# 首次使用：复制此文件为 override.yaml，根据注释修改
+#   copy override.example.yaml override.yaml
+#
+# merge.py 读取此文件 + subscriptions.yaml → 输出 bin/config.yaml
+#
+# 自定义键 (_开头) 由 merge.py 消费，不会进入最终配置:
+#   _residential-proxies  住宅代理定义 (可选)
+#   _us-filter            美国节点正则 (可选)
+#
+# proxy-groups 占位符:
+#   $all          所有常规节点 (不含住宅)
+#   $us           美国节点 (正则匹配，需配置 _us-filter)
+#   $residential  住宅代理节点
+#   $sub:<name>   指定订阅的节点
+#   $non:<name>   排除指定订阅的节点
+# ============================================================
+
+# === 基础设置 ===
+mixed-port: 7897
+external-controller: "127.0.0.1:9097"
+secret: ""                    # ⚠️ 必须修改：设置你的 API 密钥
+allow-lan: false              # 如需局域网共享改为 true
+bind-address: "*"
+mode: rule
+log-level: warning
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+keep-alive-idle: 30
+keep-alive-interval: 15
+find-process-mode: strict
+geodata-mode: false
+geodata-loader: memconservative
+geosite-matcher: succinct
+geo-auto-update: false
+geo-update-interval: 24
+global-ua: "clash.meta"
+etag-support: true
+external-ui: ui
+
+# === TUN ===
+tun:
+  enable: true
+  device: Mihomo
+  stack: system
+  dns-hijack: ["any:53"]
+  auto-route: true
+  auto-detect-interface: true
+  strict-route: true
+  mtu: 1500
+  route-exclude-address:
+    # 私有网段 (局域网/VPN/Mesh)
+    - 10.0.0.0/8
+    - 100.64.0.0/10
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    # 如使用 EasyTier / Tailscale 等 Mesh，在此添加对应 IP/网段
+    # - 10.88.88.0/24
+    # - your-relay-server-ip/32
+
+# === GeoX 数据源 ===
+geox-url:
+  geo-ip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+  mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
+  asn: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb"
+  geo-site: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+
+# ============================================================
+# 住宅代理 (可选功能)
+# ============================================================
+# 如果你购买了静态住宅 IP，取消下面的注释并填入信息。
+# 住宅 IP 通过 dialer-proxy 链式中转：
+#   你的流量 → 机场节点(中转) → 住宅 IP(出口)
+# 这样 AI 服务看到的是干净的住宅 IP，不会触发风控。
+#
+# 不使用住宅代理？保持注释即可，不影响其他功能。
+# ============================================================
+# _residential-proxies:
+#   - name: "🇺🇸 住宅①"
+#     type: socks5
+#     server: your-server-ip       # 住宅代理服务器地址
+#     port: 8080                   # 端口
+#     username: your-username      # 用户名
+#     password: your-password      # 密码
+#     udp: true
+#     dialer-proxy: "🔗 住宅中转"  # 通过哪个代理组中转
+#     skip-cert-verify: true
+#   - name: "🇺🇸 住宅②"
+#     type: socks5
+#     server: your-server-ip-2
+#     port: 8080
+#     username: your-username
+#     password: your-password
+#     udp: true
+#     dialer-proxy: "🔗 住宅中转"
+#     skip-cert-verify: true
+
+# === 美国节点筛选正则 (可选) ===
+_us-filter: "美国|US|United States|America|🇺🇸|USA|Los Angeles|LA|San Jose|SJ|Seattle|New York|NY|Dallas|Chicago|Atlanta|Miami|Phoenix|Denver|Portland|Washington"
+
+# ============================================================
+# 策略组
+# ============================================================
+proxy-groups:
+  # --- 主选择 ---
+  - name: "🚀 节点选择"
+    type: select
+    proxies: ["⚡ 自动选择", "$all"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/adjust.svg"
+
+  - name: "⚡ 自动选择"
+    type: url-test
+    url: "https://www.gstatic.com/generate_204"
+    interval: 120
+    tolerance: 20
+    timeout: 3000
+    lazy: false
+    max-failed-times: 2
+    proxies: ["$all"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/speed.svg"
+
+  # --- 按地区 ---
+  - name: "⚡ 美国自动"
+    type: url-test
+    url: "https://www.gstatic.com/generate_204"
+    interval: 120
+    tolerance: 20
+    timeout: 3000
+    lazy: false
+    max-failed-times: 2
+    proxies: ["$us"]
+    icon: "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/US.png"
+
+  # --- 按用途 ---
+  - name: "🤖 AI 服务"
+    type: select
+    proxies: ["⚡ 美国自动", "🚀 节点选择"]
+    # 如启用住宅代理，改为: ["🔄 智能备用", "🏠 住宅代理", "⚡ 美国自动", "🚀 节点选择"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/chatgpt.svg"
+
+  - name: "🔍 Google"
+    type: select
+    proxies: ["⚡ 美国自动", "🚀 节点选择"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/google.svg"
+
+  - name: "📱 Telegram"
+    type: select
+    proxies: ["⚡ 美国自动", "🚀 节点选择"]
+    icon: "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram.png"
+
+  - name: "🛠️ 开发工具"
+    type: select
+    proxies: ["🚀 节点选择", "⚡ 自动选择"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/github.svg"
+
+  - name: "Ⓜ️ 微软服务"
+    type: select
+    proxies: ["🚀 节点选择", "⚡ 自动选择", "DIRECT"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/microsoft.svg"
+
+  - name: "🎮 Steam"
+    type: select
+    proxies: ["🚀 节点选择", "⚡ 自动选择", "DIRECT"]
+    icon: "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png"
+
+  - name: "📦 下载加速"
+    type: select
+    proxies: ["⚡ 自动选择", "🚀 节点选择", "DIRECT"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/download.svg"
+
+  - name: "🐬 漏网之鱼"
+    type: select
+    proxies: ["🚀 节点选择", "⚡ 自动选择", "DIRECT"]
+    icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/fish.svg"
+
+  # ============================================================
+  # 住宅代理策略组 (可选，配合 _residential-proxies 使用)
+  # ============================================================
+  # 启用住宅代理时，取消下面三个组的注释，
+  # 并修改上面 "🤖 AI 服务" 的 proxies 列表。
+  # ============================================================
+  # - name: "🏠 住宅代理"
+  #   type: select
+  #   proxies: ["$residential"]
+  #   icon: "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png"
+  #
+  # - name: "🔗 住宅中转"
+  #   type: select
+  #   proxies: ["⚡ 自动选择", "$all"]
+  #   icon: "https://fastly.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Round_Robin.png"
+  #
+  # - name: "🔄 智能备用"
+  #   type: fallback
+  #   url: "https://www.gstatic.com/generate_204"
+  #   interval: 120
+  #   timeout: 3000
+  #   lazy: false
+  #   max-failed-times: 2
+  #   proxies: ["🏠 住宅代理", "⚡ 美国自动"]
+  #   icon: "https://fastly.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/ambulance.svg"
+
+# ============================================================
+# 分流规则
+# ============================================================
+rules:
+  # ① 下载加速 (HuggingFace / GitHub Releases / Python / Conda)
+  - "DOMAIN-SUFFIX,huggingface.co,📦 下载加速"
+  - "DOMAIN-SUFFIX,hf.co,📦 下载加速"
+  - "DOMAIN-SUFFIX,huggingface.com,📦 下载加速"
+  - "DOMAIN,objects.githubusercontent.com,📦 下载加速"
+  - "DOMAIN,codeload.github.com,📦 下载加速"
+  - "DOMAIN,github-releases.githubusercontent.com,📦 下载加速"
+  - "DOMAIN,raw.githubusercontent.com,📦 下载加速"
+  - "DOMAIN-SUFFIX,pypi.org,📦 下载加速"
+  - "DOMAIN,files.pythonhosted.org,📦 下载加速"
+  - "DOMAIN,repo.anaconda.com,📦 下载加速"
+  - "DOMAIN-SUFFIX,anaconda.org,📦 下载加速"
+  - "DOMAIN-SUFFIX,conda.io,📦 下载加速"
+
+  # ② 国内服务直连 (飞书 / 字节)
+  - "DOMAIN-SUFFIX,feishu.cn,DIRECT"
+  - "DOMAIN-SUFFIX,larksuite.com,DIRECT"
+  - "DOMAIN-SUFFIX,larksuit.com,DIRECT"
+  - "DOMAIN-SUFFIX,feishucdn.com,DIRECT"
+  - "DOMAIN-SUFFIX,byteimg.com,DIRECT"
+  - "DOMAIN-SUFFIX,bytedance.com,DIRECT"
+
+  # ③ 中国 AI API 直连
+  - "DOMAIN-SUFFIX,deepseek.com,DIRECT"
+  - "DOMAIN-SUFFIX,aliyuncs.com,DIRECT"
+  - "DOMAIN-SUFFIX,dashscope.cn,DIRECT"
+  - "DOMAIN-SUFFIX,bigmodel.cn,DIRECT"
+  - "DOMAIN-SUFFIX,stepfun.com,DIRECT"
+  - "DOMAIN-SUFFIX,baichuan-ai.com,DIRECT"
+  - "DOMAIN-SUFFIX,moonshot.cn,DIRECT"
+  - "DOMAIN-SUFFIX,volcengineapi.com,DIRECT"
+  - "DOMAIN-SUFFIX,volces.com,DIRECT"
+  - "DOMAIN-SUFFIX,baidubce.com,DIRECT"
+  - "DOMAIN-SUFFIX,minimaxi.com,DIRECT"
+  - "DOMAIN-SUFFIX,lingyiwanwu.com,DIRECT"
+  - "DOMAIN-SUFFIX,siliconflow.cn,DIRECT"
+
+  # ④ 中国镜像直连
+  - "DOMAIN-SUFFIX,npmmirror.com,DIRECT"
+  - "DOMAIN,pypi.tuna.tsinghua.edu.cn,DIRECT"
+  - "DOMAIN-SUFFIX,mirrors.aliyun.com,DIRECT"
+  - "DOMAIN-SUFFIX,mirrors.tencent.com,DIRECT"
+  - "DOMAIN-SUFFIX,mirrors.ustc.edu.cn,DIRECT"
+
+  # ⑤ Steam (CDN+支付直连, 社区走代理)
+  - "DOMAIN-SUFFIX,steamcontent.com,DIRECT"
+  - "DOMAIN-SUFFIX,cs.steampowered.com,DIRECT"
+  - "DOMAIN-SUFFIX,client-download.steampowered.com,DIRECT"
+  - "DOMAIN-SUFFIX,steamserver.net,DIRECT"
+  - "DOMAIN-SUFFIX,8686c.com,DIRECT"
+  - "DOMAIN-SUFFIX,tnkjmec.com,DIRECT"
+  - "DOMAIN-SUFFIX,clngaa.com,DIRECT"
+  - "DOMAIN-SUFFIX,eccdnx.com,DIRECT"
+  - "DOMAIN-SUFFIX,bscstorage.net,DIRECT"
+  - "DOMAIN-SUFFIX,pphimalayanrt.com,DIRECT"
+  - "DOMAIN-SUFFIX,queniujq.cn,DIRECT"
+  - "DOMAIN-SUFFIX,pinyuncloud.com,DIRECT"
+  - "DOMAIN-SUFFIX,qtlglb.com,DIRECT"
+  - "DOMAIN-SUFFIX,steamchina.com,DIRECT"
+  - "DOMAIN-KEYWORD,steampipe,DIRECT"
+  - "DOMAIN-SUFFIX,store.steampowered.com,DIRECT"
+  - "DOMAIN-SUFFIX,checkout.steampowered.com,DIRECT"
+  - "DOMAIN-SUFFIX,api.steampowered.com,DIRECT"
+  - "DOMAIN-SUFFIX,login.steampowered.com,DIRECT"
+  - "DOMAIN-SUFFIX,help.steampowered.com,DIRECT"
+  - "DOMAIN-SUFFIX,steampowered.com,🎮 Steam"
+  - "DOMAIN-SUFFIX,steamcommunity.com,🎮 Steam"
+  - "DOMAIN-SUFFIX,steamstatic.com,🎮 Steam"
+  - "DOMAIN-SUFFIX,steamcdn-a.akamaihd.net,🎮 Steam"
+  - "DOMAIN-SUFFIX,steam-chat.com,🎮 Steam"
+  - "DOMAIN-SUFFIX,valvesoftware.com,🎮 Steam"
+  - "DOMAIN-SUFFIX,steamgames.com,🎮 Steam"
+
+  # ⑥ Telegram
+  - "DOMAIN-SUFFIX,telegram.org,📱 Telegram"
+  - "DOMAIN-SUFFIX,t.me,📱 Telegram"
+  - "DOMAIN-SUFFIX,telegram.me,📱 Telegram"
+  - "DOMAIN-SUFFIX,telegra.ph,📱 Telegram"
+  - "DOMAIN-SUFFIX,telesco.pe,📱 Telegram"
+  - "IP-CIDR,149.154.160.0/20,📱 Telegram"
+  - "IP-CIDR,91.108.4.0/22,📱 Telegram"
+  - "IP-CIDR,91.108.8.0/22,📱 Telegram"
+  - "IP-CIDR,91.108.12.0/22,📱 Telegram"
+  - "IP-CIDR,91.108.16.0/22,📱 Telegram"
+  - "IP-CIDR,91.108.20.0/22,📱 Telegram"
+  - "IP-CIDR,91.108.56.0/22,📱 Telegram"
+  - "IP-CIDR6,2001:b28:f23d::/48,📱 Telegram"
+  - "IP-CIDR6,2001:b28:f23f::/48,📱 Telegram"
+  - "IP-CIDR6,2001:67c:4e8::/48,📱 Telegram"
+
+  # ⑦ Google / Gemini AI
+  - "DOMAIN-SUFFIX,gemini.google.com,🔍 Google"
+  - "DOMAIN-SUFFIX,aistudio.google.com,🔍 Google"
+  - "DOMAIN-SUFFIX,generativeai.google.com,🔍 Google"
+  - "DOMAIN,generativelanguage.googleapis.com,🔍 Google"
+  - "DOMAIN-SUFFIX,antigravity.ai,🔍 Google"
+
+  # ⑧ AI 服务 (海外)
+  - "DOMAIN-SUFFIX,anthropic.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,claude.ai,🤖 AI 服务"
+  - "DOMAIN-KEYWORD,anthropic,🤖 AI 服务"
+  - "PROCESS-NAME,Claude.exe,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,openai.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,chatgpt.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,oaiusercontent.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,oaistatic.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,featuregates.org,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,sora.com,🤖 AI 服务"
+  - "DOMAIN,events.statsigapi.net,🤖 AI 服务"
+  - "PROCESS-NAME,ChatGPT.exe,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,codex.com,🤖 AI 服务"
+  - "DOMAIN-KEYWORD,codex.openai,🤖 AI 服务"
+  - "PROCESS-NAME,codex.exe,🤖 AI 服务"
+  - "DOMAIN,copilot.microsoft.com,🤖 AI 服务"
+  - "DOMAIN,sydney.bing.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,githubcopilot.com,🤖 AI 服务"
+  - "DOMAIN,copilot-proxy.githubusercontent.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,openrouter.ai,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,mistral.ai,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,cursor.sh,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,cursor.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,cursor.so,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,v0.dev,🤖 AI 服务"
+  - "DOMAIN,sdk.vercel.ai,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,replit.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,repl.co,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,grok.com,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,x.ai,🤖 AI 服务"
+  - "DOMAIN-SUFFIX,perplexity.ai,🤖 AI 服务"
+
+  # ⑨ 开发工具 (Docker / npm)
+  - "DOMAIN-SUFFIX,docker.io,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,docker.com,🛠️ 开发工具"
+  - "DOMAIN,registry-1.docker.io,🛠️ 开发工具"
+  - "DOMAIN,auth.docker.io,🛠️ 开发工具"
+  - "DOMAIN,production.cloudflare.docker.com,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,ghcr.io,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,gcr.io,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,nvcr.io,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,quay.io,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,k8s.io,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,npmjs.org,🛠️ 开发工具"
+  - "DOMAIN-SUFFIX,npmjs.com,🛠️ 开发工具"
+  - "DOMAIN,registry.npmjs.org,🛠️ 开发工具"
+
+  # ⑩ 规则集
+  - "RULE-SET,Google,🔍 Google"
+  - "RULE-SET,YouTube,🔍 Google"
+  - "RULE-SET,GitHub,🛠️ 开发工具"
+  - "RULE-SET,Microsoft,Ⓜ️ 微软服务"
+  - "RULE-SET,AdBlock,REJECT"
+
+  # ⑪ 兜底
+  - "GEOIP,LAN,DIRECT,no-resolve"
+  - "GEOIP,CN,DIRECT,no-resolve"
+  - "MATCH,🐬 漏网之鱼"
+
+# === 规则集提供者 ===
+rule-providers:
+  Google:
+    type: http
+    format: yaml
+    behavior: classical
+    interval: 86400
+    url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Google/Google.yaml"
+  YouTube:
+    type: http
+    format: yaml
+    behavior: classical
+    interval: 86400
+    url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/YouTube/YouTube.yaml"
+  GitHub:
+    type: http
+    format: yaml
+    behavior: classical
+    interval: 86400
+    url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/GitHub/GitHub.yaml"
+  Microsoft:
+    type: http
+    format: yaml
+    behavior: classical
+    interval: 86400
+    url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Microsoft/Microsoft_No_Resolve.yaml"
+  AdBlock:
+    type: http
+    format: yaml
+    behavior: domain
+    interval: 86400
+    url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical.yaml"
+
+# === DNS ===
+dns:
+  enable: true
+  listen: "0.0.0.0:1053"
+  ipv6: true
+  use-system-hosts: false
+  cache-algorithm: arc
+  enhanced-mode: fake-ip
+  fake-ip-range: "198.18.0.1/16"
+  fake-ip-filter:
+    - "geosite:cn"
+    - "geosite:private"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+    - "*.ntp.org.cn"
+    - "pool.ntp.org"
+    # 国内 AI 服务
+    - "+.deepseek.com"
+    - "+.aliyuncs.com"
+    - "+.dashscope.cn"
+    - "+.bigmodel.cn"
+    - "+.stepfun.com"
+    - "+.baichuan-ai.com"
+    - "+.moonshot.cn"
+    - "+.volcengineapi.com"
+    - "+.volces.com"
+    - "+.baidubce.com"
+    - "+.minimaxi.com"
+    - "+.lingyiwanwu.com"
+    - "+.siliconflow.cn"
+    # Steam 支付/登录 (风控要求真实 IP)
+    - "+.store.steampowered.com"
+    - "+.checkout.steampowered.com"
+    - "+.api.steampowered.com"
+    - "+.login.steampowered.com"
+    - "+.help.steampowered.com"
+    # 飞书
+    - "+.feishu.cn"
+    - "+.larksuite.com"
+    - "+.larksuit.com"
+    - "+.feishucdn.com"
+    # Telegram
+    - "+.telegram.org"
+    - "+.t.me"
+  default-nameserver:
+    - "223.5.5.5"
+    - "119.29.29.29"
+    - "1.1.1.1"
+    - "8.8.8.8"
+  nameserver:
+    - "https://dns.alidns.com/dns-query"
+    - "https://doh.pub/dns-query"
+  proxy-server-nameserver:
+    - "https://doh.pub/dns-query"
+    - "https://dns.alidns.com/dns-query"
+  direct-nameserver:
+    - "https://dns.alidns.com/dns-query"
+    - "https://doh.pub/dns-query"
+  fallback:
+    - "https://1.1.1.1/dns-query"
+    - "https://dns.google/dns-query"
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite: ["gfw"]
+    ipcidr: ["240.0.0.0/4"]
+    domain:
+      - "+.google.com"
+      - "+.facebook.com"
+      - "+.youtube.com"
+      - "+.twitter.com"
+      - "+.github.com"
+  nameserver-policy:
+    # 国内 AI 走国内 DNS
+    "+.deepseek.com,+.aliyuncs.com,+.dashscope.cn,+.bigmodel.cn,+.moonshot.cn,+.volcengineapi.com,+.baidubce.com,+.siliconflow.cn,+.stepfun.com,+.baichuan-ai.com,+.minimaxi.com,+.lingyiwanwu.com":
+      - "https://dns.alidns.com/dns-query"
+      - "https://doh.pub/dns-query"
+    # 海外开发走海外 DNS
+    "+.github.com,+.githubusercontent.com,+.githubassets.com,+.docker.io,+.docker.com,+.ghcr.io,+.gcr.io,+.nvcr.io":
+      - "https://dns.google/dns-query"
+      - "https://1.1.1.1/dns-query"
+    # 海外 AI 走海外 DNS
+    "+.anthropic.com,+.claude.ai,+.openai.com,+.chatgpt.com,+.huggingface.co":
+      - "https://dns.google/dns-query"
+      - "https://1.1.1.1/dns-query"
+    # Steam CDN 走国内 DNS (命中国内 CDN 节点)
+    "+.steamcontent.com,+.steamserver.net,+.cs.steampowered.com,+.client-download.steampowered.com,+.store.steampowered.com,+.checkout.steampowered.com,+.api.steampowered.com,+.login.steampowered.com,+.help.steampowered.com":
+      - "https://dns.alidns.com/dns-query"
+      - "https://doh.pub/dns-query"
+    "+.8686c.com,+.tnkjmec.com,+.clngaa.com,+.eccdnx.com,+.bscstorage.net,+.pphimalayanrt.com,+.queniujq.cn,+.pinyuncloud.com,+.qtlglb.com,+.steamchina.com":
+      - "https://dns.alidns.com/dns-query"
+      - "https://doh.pub/dns-query"
+    "geosite:cn":
+      - "https://dns.alidns.com/dns-query"
+      - "https://doh.pub/dns-query"
