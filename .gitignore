@@ -7,6 +7,7 @@ rules/
 # User config (contains subscription URLs and secrets)
 subscriptions.yaml
 override.yaml
+.env
 
 # Generated output
 bin/config.yaml
