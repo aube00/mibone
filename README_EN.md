@@ -1,6 +1,6 @@
 # Mibone
 
-> **mi**homo + **bone** = bare-bones mihomo. Lightweight, fast, fully configurable.
+> **mi**homo + **bone** = bare-bones mihomo, ready out of the box.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)](https://github.com/aube00/mibone/releases)
@@ -21,6 +21,26 @@ Mibone deploys [mihomo](https://github.com/MetaCubeX/mihomo) (Clash-compatible p
 | Node switching | [zashboard](https://github.com/Zephyruso/zashboard) web panel | Built-in GUI |
 | Configuration | YAML files + CLI | GUI interface |
 
+## Who is this for?
+
+- Migrating from GUI clients (Clash Verge / CFW) and want something lighter
+- Want your proxy to auto-start on boot and run silently — no desktop window
+- Managing multiple machines and prefer CLI + config files over GUI
+- Want to use the mihomo kernel without the hassle of manual service registration and config generation
+- You know an AI agent could walk you through the raw mihomo setup — but you'd rather have a tool that's already built, tested, and hardened, ready to use out of the box
+
+## Why not just use mihomo directly?
+
+mihomo is a proxy kernel — it doesn't manage its own lifecycle. Using it directly means:
+
+- Hand-writing a full `config.yaml` (300+ lines: proxy groups, rules, DNS, TUN)
+- Manually registering a Windows service (winsw setup + XML config)
+- Manually downloading GeoIP / GeoSite data files
+- Manually converting subscription URLs into mihomo configuration
+- Manually restarting or calling the API after every config change
+
+Mibone automates all of this — paste your subscription URL, run `mibone init`, done.
+
 ## Features
 
 - **One-command setup**: `mibone init` — paste your subscription URL, done
@@ -30,6 +50,8 @@ Mibone deploys [mihomo](https://github.com/MetaCubeX/mihomo) (Clash-compatible p
 - **Customizable**: `override.yaml` with deep merge over defaults
 - **Residential proxy** (optional): chain proxy via residential SOCKS5
 - **Web dashboard**: [zashboard](https://github.com/Zephyruso/zashboard) for node switching and latency testing
+- **Subscription cache fallback**: if a subscription download fails, uses the last cached version — never leaves you disconnected
+- **Port conflict detection**: checks for occupied ports at install time and warns early, instead of failing silently on startup
 - **Zero dependencies**: single exe, no Python / Node / runtime needed
 
 ## Quick Start

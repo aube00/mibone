@@ -1,6 +1,6 @@
 # Mibone
 
-> **mi**homo + **bone** = 裸核 mihomo，轻量、快速、可控。
+> **mi**homo + **bone** = 开箱即用的裸核 mihomo。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)](https://github.com/aube00/mibone/releases)
@@ -23,6 +23,26 @@ Mibone 把 [mihomo](https://github.com/MetaCubeX/mihomo)（Clash 内核）部署
 | 节点管理 | [zashboard](https://github.com/Zephyruso/zashboard) Web 面板 | 内置 GUI |
 | 配置方式 | YAML 文件 + CLI | GUI 界面 |
 
+## 适合谁
+
+- 从 Clash Verge / CFW 等 GUI 客户端迁移，想要更轻量的方案
+- 希望代理开机自启、后台静默运行，不需要桌面窗口
+- 有多台机器需要部署，偏好 CLI + 配置文件的管理方式
+- 想用 mihomo 内核但不想折腾手动配置服务注册、配置生成等环节
+- 知道 AI agent 能帮你一步步搞定裸核部署，但更想要一个已经做完、测过、加固过的现成工具——拿来就用
+
+## 为什么不直接用裸核 mihomo？
+
+mihomo 本身是代理内核，不管理自己的生命周期。直接用裸核你需要：
+
+- 手写完整的 `config.yaml`（300+ 行，含策略组、规则、DNS、TUN）
+- 手动注册 Windows 服务（winsw 配置 + XML 编写）
+- 手动下载 GeoIP / GeoSite 数据文件
+- 手动处理订阅地址 → mihomo 配置的转换
+- 每次改配置手动重启或调 API
+
+Mibone 把这些全自动化了——粘贴订阅地址，`mibone init` 一条命令搞定。
+
 ## 功能
 
 - **一键部署**：`mibone init` 交互式引导，粘贴订阅地址即可
@@ -32,6 +52,8 @@ Mibone 把 [mihomo](https://github.com/MetaCubeX/mihomo)（Clash 内核）部署
 - **自由定制**：`override.yaml` 深度合并覆盖默认配置
 - **住宅代理**（可选）：链式代理，机场节点中转 → 住宅 IP 出口
 - **Web 面板**：[zashboard](https://github.com/Zephyruso/zashboard)，节点切换 + 延迟测试
+- **订阅缓存容灾**：订阅下载失败时自动使用上次缓存，不会让你断网
+- **端口冲突检测**：安装时自动检测端口占用，提前告警而不是启动后报错
 - **零依赖**：单个 exe，不需要安装 Python / Node / 任何运行时
 
 ## 快速开始
