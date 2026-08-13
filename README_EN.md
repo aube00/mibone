@@ -4,6 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Windows](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)](https://github.com/aube00/mibone/releases)
+[![LINUX DO](https://cdn3.ldstatic.com/original/4X/b/f/b/bfb681a6bdec04853c7b5e16c379f3a79fe47a9c.svg)](https://linux.do)
 
 [中文](README.md)
 
