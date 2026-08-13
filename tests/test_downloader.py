@@ -1,8 +1,10 @@
 """Tests for download component exists-check logic (downloader.py)."""
 
+import io
+import zipfile
 from pathlib import Path
 
-from mibone.downloader import COMPONENTS
+from mibone.downloader import COMPONENTS, _safe_extract
 
 
 class TestExistsCheck:
@@ -45,3 +47,27 @@ class TestExistsCheck:
         (tmp_path / "bin").mkdir()
         assert tmp_path.exists()  # base_dir always exists
         assert not self._check_exists(tmp_path, COMPONENTS["zashboard"])
+
+
+class TestSafeExtract:
+    def _make_zip(self, members):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            for name, data in members.items():
+                zf.writestr(name, data)
+        buf.seek(0)
+        return buf
+
+    def test_normal_zip_extracts(self, tmp_path):
+        buf = self._make_zip({"file.txt": "hello", "sub/file2.txt": "world"})
+        with zipfile.ZipFile(buf) as zf:
+            _safe_extract(zf, tmp_path)
+        assert (tmp_path / "file.txt").read_text() == "hello"
+        assert (tmp_path / "sub" / "file2.txt").read_text() == "world"
+
+    def test_path_traversal_blocked(self, tmp_path):
+        buf = self._make_zip({"../escape.txt": "malicious"})
+        with zipfile.ZipFile(buf) as zf:
+            with __import__("pytest").raises(ValueError, match="Unsafe path"):
+                _safe_extract(zf, tmp_path)
+        assert not (tmp_path.parent / "escape.txt").exists()

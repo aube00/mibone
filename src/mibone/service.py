@@ -4,6 +4,7 @@ import json
 import subprocess
 import urllib.error
 import urllib.request
+from collections import deque
 from pathlib import Path
 
 from mibone.utils import (
@@ -28,6 +29,8 @@ def _winsw(base_dir, *args):
             [str(exe)] + list(args),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
             cwd=str(Path(base_dir) / "bin"),
         )
@@ -56,6 +59,16 @@ def install_service(base_dir):
             f"Port {MIXED_PORT} in use, close other proxy tools first (e.g. Clash Verge)",
         )
         return False
+    if _check_port(DASHBOARD_PORT):
+        print_warn(
+            f"端口 {DASHBOARD_PORT} (面板) 已被占用，zashboard 可能无法访问",
+            f"Port {DASHBOARD_PORT} (dashboard) in use, zashboard may not work",
+        )
+    if _check_port(SOCKS_PORT):
+        print_warn(
+            f"端口 {SOCKS_PORT} (SOCKS5) 已被占用",
+            f"Port {SOCKS_PORT} (SOCKS5) in use",
+        )
 
     config_path = base_dir / "bin" / "config.yaml"
     if not config_path.exists():
@@ -111,13 +124,22 @@ def reload_config(base_dir):
     if not config_path.exists():
         return False
 
+    from mibone.utils import load_yaml
+
+    config = load_yaml(config_path)
+    secret = config.get("secret", "")
+    controller = config.get("external-controller", f"127.0.0.1:{DASHBOARD_PORT}")
+
     try:
         payload = json.dumps({"path": str(config_path.resolve())}).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        if secret:
+            headers["Authorization"] = f"Bearer {secret}"
         req = urllib.request.Request(
-            f"http://127.0.0.1:{DASHBOARD_PORT}/configs",
+            f"http://{controller}/configs",
             data=payload,
             method="PUT",
-            headers={"Content-Type": "application/json"},
+            headers=headers,
         )
         with urllib.request.urlopen(req, timeout=10):
             pass
@@ -142,7 +164,7 @@ def show_status(base_dir):
         print_err("mihomo 服务未运行", "mihomo service is not running")
         print_bi("运行 mibone restart 重启服务", "Run mibone restart to start")
     print()
-    return 0
+    return 0 if running else 1
 
 
 def show_log(base_dir, lines=50):
@@ -154,8 +176,7 @@ def show_log(base_dir, lines=50):
         if not path.exists():
             continue
         with open(path, "r", encoding="utf-8", errors="replace") as f:
-            all_lines = f.readlines()
-        tail = all_lines[-lines:] if len(all_lines) > lines else all_lines
+            tail = deque(f, maxlen=lines)
         if tail:
             print(f"--- {label} ({path.name}) ---")
             for line in tail:

@@ -226,14 +226,15 @@ python -m mibone init
 Release 版本使用 Nuitka 编译为单个 exe：
 
 ```powershell
-pip install nuitka
-nuitka --onefile --standalone --output-dir=dist ^
-    --include-package=mibone ^
+pip install nuitka ordered-set zstandard
+cd src
+nuitka --onefile --standalone --assume-yes-for-downloads ^
+    --output-dir=..\dist ^
     --output-filename=mibone.exe ^
-    src/mibone/__main__.py
+    mibone
 ```
 
-> 需要安装 [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)（MSVC C 编译器）。
+> 需要 C 编译器：MSVC（[Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)）或 MinGW 均可。
 
 ## License
 

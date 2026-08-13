@@ -263,6 +263,45 @@ class TestSubscriptionValidation:
         ):
             generate_config(tmp_path)
 
+    def test_duplicate_name(self, tmp_path):
+        self._make_project(
+            tmp_path,
+            [
+                {"name": "same", "url": "https://example.com/sub1"},
+                {"name": "same", "url": "https://example.com/sub2"},
+            ],
+        )
+        with __import__("pytest").raises(ValueError, match="重复"):
+            generate_config(tmp_path)
+
+    def test_name_with_slash(self, tmp_path):
+        self._make_project(
+            tmp_path, [{"name": "../../etc", "url": "https://example.com/sub"}]
+        )
+        with __import__("pytest").raises(ValueError, match="非法字符"):
+            generate_config(tmp_path)
+
+    def test_name_with_backslash(self, tmp_path):
+        self._make_project(
+            tmp_path, [{"name": "a\\b", "url": "https://example.com/sub"}]
+        )
+        with __import__("pytest").raises(ValueError, match="非法字符"):
+            generate_config(tmp_path)
+
+    def test_name_with_dotdot(self, tmp_path):
+        self._make_project(
+            tmp_path, [{"name": "a..b", "url": "https://example.com/sub"}]
+        )
+        with __import__("pytest").raises(ValueError, match="非法字符"):
+            generate_config(tmp_path)
+
+    def test_chinese_name_allowed(self, tmp_path):
+        self._make_project(
+            tmp_path, [{"name": "我的订阅", "url": "https://example.com/sub"}]
+        )
+        generate_config(tmp_path)
+        assert (tmp_path / "bin" / "config.yaml").exists()
+
 
 class TestChainProxyValidation:
     def _make_project(self, tmp_path, chain_proxy):

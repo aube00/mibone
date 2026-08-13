@@ -88,6 +88,15 @@ def run_setup(base_dir, update=False):
     return success
 
 
+def _safe_extract(zf, target_dir):
+    target_dir = Path(target_dir).resolve()
+    for member in zf.namelist():
+        member_path = (target_dir / member).resolve()
+        if not str(member_path).startswith(str(target_dir)):
+            raise ValueError(f"Unsafe path in zip: {member}")
+    zf.extractall(target_dir)
+
+
 def _download_component(name, comp, base_dir):
     try:
         repo = comp["repo"]
@@ -117,26 +126,34 @@ def _download_component(name, comp, base_dir):
             tmp_zip = base_dir / "bin" / f"{name}.tmp.zip"
             if not _download_file(asset_url, tmp_zip):
                 return False
-            target_dir = base_dir / comp["target_dir"]
-            if target_dir.exists():
-                shutil.rmtree(target_dir)
-            with zipfile.ZipFile(tmp_zip, "r") as zf:
-                zf.extractall(target_dir)
-            tmp_zip.unlink()
+            try:
+                target_dir = base_dir / comp["target_dir"]
+                if target_dir.exists():
+                    shutil.rmtree(target_dir)
+                with zipfile.ZipFile(tmp_zip, "r") as zf:
+                    _safe_extract(zf, target_dir)
+            finally:
+                tmp_zip.unlink(missing_ok=True)
         elif name == "mihomo":
             tmp_zip = base_dir / "bin" / "mihomo.tmp.zip"
             if not _download_file(asset_url, tmp_zip):
                 return False
-            with zipfile.ZipFile(tmp_zip, "r") as zf:
-                for member in zf.namelist():
-                    if member.endswith(".exe"):
-                        with (
-                            zf.open(member) as src,
-                            open(base_dir / comp["target"], "wb") as dst,
-                        ):
-                            dst.write(src.read())
-                        break
-            tmp_zip.unlink()
+            try:
+                with zipfile.ZipFile(tmp_zip, "r") as zf:
+                    for member in zf.namelist():
+                        if member.endswith(".exe"):
+                            member_path = Path(base_dir / comp["target"]).resolve()
+                            extract_dir = member_path.parent.resolve()
+                            if not str(member_path).startswith(str(extract_dir)):
+                                raise ValueError(f"Unsafe path in zip: {member}")
+                            with (
+                                zf.open(member) as src,
+                                open(member_path, "wb") as dst,
+                            ):
+                                dst.write(src.read())
+                            break
+            finally:
+                tmp_zip.unlink(missing_ok=True)
         else:
             target = base_dir / comp["target"]
             if not _download_file(asset_url, target):
@@ -145,6 +162,15 @@ def _download_component(name, comp, base_dir):
         print_ok(f"{name} v{release.get('tag_name', '?')}", name)
         return True
 
+    except urllib.error.HTTPError as e:
+        if e.code == 403:
+            print_err(
+                f"{name}: GitHub API 限流，请稍后重试",
+                f"{name}: GitHub API rate limited, try again later",
+            )
+        else:
+            print_err(f"{name} 下载出错: {e}", f"{name} download error: {e}")
+        return False
     except Exception as e:
         print_err(f"{name} 下载出错: {e}", f"{name} download error: {e}")
         return False

@@ -1,5 +1,6 @@
 """Config generation: template + subscriptions + override → bin/config.yaml"""
 
+import re
 from pathlib import Path
 
 from mibone.utils import load_yaml, save_yaml, print_ok, print_warn, print_err
@@ -59,6 +60,16 @@ def _inject_providers(config, subscriptions):
                 " — 请参考 subscriptions.example.yaml"
             )
         name = sub["name"]
+        if re.search(r"[/\\]", name) or ".." in name:
+            raise ValueError(
+                f"订阅 #{i + 1} 的 name 含非法字符 (name contains unsafe characters: '{name}')"
+                " — name 不能包含 / \\ .."
+            )
+        if name in providers:
+            raise ValueError(
+                f"订阅 #{i + 1} 的 name '{name}' 重复 (duplicate subscription name)"
+                " — 每个订阅需要唯一的 name"
+            )
         entry = {
             "type": "http",
             "url": sub["url"],
@@ -211,6 +222,7 @@ def _apply_chain_proxy(config, chain_cfg, provider_names):
         },
     )
 
+    ai_found = False
     for group in groups:
         if group["name"] == "🤖 AI 服务":
             group["proxies"] = [
@@ -219,7 +231,13 @@ def _apply_chain_proxy(config, chain_cfg, provider_names):
                 "⚡ 美国自动",
                 "🚀 节点选择",
             ]
+            ai_found = True
             break
+    if not ai_found:
+        print_warn(
+            "未找到 '🤖 AI 服务' 策略组，住宅代理需手动配置路由",
+            "'🤖 AI 服务' group not found, configure residential routing manually",
+        )
 
 
 def _expand_single_group_providers(group, provider_names):
