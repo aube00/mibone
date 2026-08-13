@@ -23,15 +23,16 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install nuitka
+          pip install nuitka ordered-set zstandard
 
       - name: Build with Nuitka
+        working-directory: src
         run: |
           nuitka --onefile --standalone `
-            --output-dir=dist `
-            --include-package=mibone `
+            --assume-yes-for-downloads `
+            --output-dir=..\dist `
             --output-filename=mibone.exe `
-            src/mibone/__main__.py
+            mibone
 
       - name: Prepare release zip
         run: |
