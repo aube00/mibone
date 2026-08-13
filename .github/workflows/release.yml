@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install nuitka
+
+      - name: Build with Nuitka
+        run: |
+          nuitka --onefile --standalone `
+            --output-dir=dist `
+            --include-package=mibone `
+            --output-filename=mibone.exe `
+            src/mibone/__main__.py
+
+      - name: Prepare release zip
+        run: |
+          $version = "${{ github.ref_name }}"
+          $dir = "mibone-$version"
+          New-Item -ItemType Directory -Path $dir
+
+          Copy-Item dist/mibone.exe $dir/
+          Copy-Item config.template.yaml $dir/
+          Copy-Item override.example.yaml $dir/
+          Copy-Item subscriptions.example.yaml $dir/
+          Copy-Item README.md $dir/
+          Copy-Item LICENSE $dir/
+
+          New-Item -ItemType Directory -Path "$dir/bin"
+          Copy-Item bin/mihomo-service.xml "$dir/bin/"
+
+          Compress-Archive -Path $dir -DestinationPath "mibone-$version.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mibone-*.zip
+          draft: true
+          generate_release_notes: false
