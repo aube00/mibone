@@ -271,7 +271,7 @@ rule-providers:
   AdBlock:
     type: http
     format: yaml
-    behavior: domain
+    behavior: classical
     interval: 86400
     url: "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical.yaml"
 

@@ -57,14 +57,14 @@ def run_setup(base_dir, update=False):
     success = True
 
     for name, comp in COMPONENTS.items():
-        target = base_dir / comp.get("target", "")
-        target_dir = (
-            base_dir / comp.get("target_dir", "") if "target_dir" in comp else None
-        )
+        if "target" in comp:
+            exists = (base_dir / comp["target"]).exists()
+        elif "target_dir" in comp:
+            exists = (base_dir / comp["target_dir"]).exists()
+        else:
+            exists = False
 
-        if not update and (
-            target.exists() if target.name else (target_dir and target_dir.exists())
-        ):
+        if not update and exists:
             print_ok(f"{name} 已存在，跳过", f"{name} exists, skipping")
             continue
 

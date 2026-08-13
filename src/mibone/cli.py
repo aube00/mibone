@@ -76,7 +76,11 @@ def cmd_init(args):
     print_bi("正在生成配置并安装服务...", "Generating config and installing service...")
     from mibone.merge import generate_config
 
-    generate_config(base)
+    try:
+        generate_config(base)
+    except (KeyError, ValueError, FileNotFoundError) as e:
+        print_err(f"配置生成失败: {e}", f"Config generation failed: {e}")
+        return 1
     print_ok("配置已生成", "Config generated")
 
     from mibone.service import install_service
@@ -128,7 +132,11 @@ def cmd_install(args):
 
     from mibone.merge import generate_config
 
-    generate_config(base)
+    try:
+        generate_config(base)
+    except (KeyError, ValueError, FileNotFoundError) as e:
+        print_err(f"配置生成失败: {e}", f"Config generation failed: {e}")
+        return 1
     print_ok("配置已生成", "Config generated")
 
     from mibone.service import install_service
@@ -170,7 +178,11 @@ def cmd_update(args):
 
     from mibone.merge import generate_config
 
-    generate_config(base)
+    try:
+        generate_config(base)
+    except (KeyError, ValueError, FileNotFoundError) as e:
+        print_err(f"配置生成失败: {e}", f"Config generation failed: {e}")
+        return 1
     print_ok("配置已更新", "Config updated")
 
     from mibone.service import reload_config

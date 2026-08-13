@@ -78,11 +78,9 @@ def install_service(base_dir):
         return False
 
     result = _winsw(base_dir, "start")
-    if (
-        result
-        and result.returncode != 0
-        and "already started" not in result.stderr.lower()
-    ):
+    if result is None:
+        return False
+    if result.returncode != 0 and "already started" not in result.stderr.lower():
         print_err(
             f"启动失败: {result.stderr.strip()}",
             f"Start failed: {result.stderr.strip()}",
