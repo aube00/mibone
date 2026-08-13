@@ -210,3 +210,106 @@ class TestErrorCases:
 
         with __import__("pytest").raises(ValueError, match="No subscriptions"):
             generate_config(tmp_path)
+
+
+class TestSubscriptionValidation:
+    def _make_project(self, tmp_path, subscriptions):
+        (tmp_path / "config.template.yaml").write_text("mode: rule", encoding="utf-8")
+        (tmp_path / "bin").mkdir()
+        subs = {"subscriptions": subscriptions}
+        with open(tmp_path / "subscriptions.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(subs, f, allow_unicode=True)
+
+    def test_missing_name(self, tmp_path):
+        self._make_project(tmp_path, [{"url": "https://example.com/sub"}])
+        with __import__("pytest").raises(ValueError, match="缺少 name"):
+            generate_config(tmp_path)
+
+    def test_empty_name(self, tmp_path):
+        self._make_project(tmp_path, [{"name": "", "url": "https://example.com/sub"}])
+        with __import__("pytest").raises(ValueError, match="缺少 name"):
+            generate_config(tmp_path)
+
+    def test_missing_url(self, tmp_path):
+        self._make_project(tmp_path, [{"name": "test"}])
+        with __import__("pytest").raises(ValueError, match="缺少 url"):
+            generate_config(tmp_path)
+
+    def test_empty_url(self, tmp_path):
+        self._make_project(tmp_path, [{"name": "test", "url": ""}])
+        with __import__("pytest").raises(ValueError, match="缺少 url"):
+            generate_config(tmp_path)
+
+    def test_not_a_dict(self, tmp_path):
+        self._make_project(tmp_path, ["https://example.com/sub"])
+        with __import__("pytest").raises(ValueError, match="格式错误"):
+            generate_config(tmp_path)
+
+    def test_second_sub_invalid(self, tmp_path):
+        self._make_project(
+            tmp_path,
+            [
+                {"name": "good", "url": "https://example.com/sub1"},
+                {"name": "bad"},
+            ],
+        )
+        with __import__("pytest").raises(ValueError, match="#2.*缺少 url"):
+            generate_config(tmp_path)
+
+    def test_error_references_example_file(self, tmp_path):
+        self._make_project(tmp_path, [{"url": "https://example.com/sub"}])
+        with __import__("pytest").raises(
+            ValueError, match="subscriptions.example.yaml"
+        ):
+            generate_config(tmp_path)
+
+
+class TestChainProxyValidation:
+    def _make_project(self, tmp_path, chain_proxy):
+        import shutil
+
+        src = __import__("pathlib").Path(__file__).parent.parent
+        shutil.copy(src / "config.template.yaml", tmp_path / "config.template.yaml")
+        (tmp_path / "bin").mkdir()
+        subs = {"subscriptions": [{"name": "test", "url": "https://example.com/sub"}]}
+        with open(tmp_path / "subscriptions.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(subs, f, allow_unicode=True)
+        override = {"_chain-proxy": chain_proxy}
+        with open(tmp_path / "override.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(override, f, allow_unicode=True)
+
+    def test_missing_server(self, tmp_path):
+        self._make_project(tmp_path, {"port": 1080})
+        with __import__("pytest").raises(ValueError, match="缺少 server"):
+            generate_config(tmp_path)
+
+    def test_empty_server(self, tmp_path):
+        self._make_project(tmp_path, {"server": "", "port": 1080})
+        with __import__("pytest").raises(ValueError, match="缺少 server"):
+            generate_config(tmp_path)
+
+    def test_missing_port(self, tmp_path):
+        self._make_project(tmp_path, {"server": "1.2.3.4"})
+        with __import__("pytest").raises(ValueError, match="缺少 port"):
+            generate_config(tmp_path)
+
+    def test_not_a_dict(self, tmp_path):
+        self._make_project(tmp_path, "1.2.3.4:1080")
+        with __import__("pytest").raises(ValueError, match="格式错误"):
+            generate_config(tmp_path)
+
+    def test_second_proxy_invalid(self, tmp_path):
+        self._make_project(
+            tmp_path,
+            [
+                {"server": "1.2.3.4", "port": 1080},
+                {"server": "5.6.7.8"},
+            ],
+        )
+        with __import__("pytest").raises(ValueError, match="#2.*缺少 port"):
+            generate_config(tmp_path)
+
+    def test_error_references_example_file(self, tmp_path):
+        self._make_project(tmp_path, {"port": 1080})
+        with __import__("pytest").raises(ValueError, match="override.example.yaml"):
+            generate_config(tmp_path)

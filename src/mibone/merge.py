@@ -42,7 +42,22 @@ def generate_config(base_dir):
 
 def _inject_providers(config, subscriptions):
     providers = {}
-    for sub in subscriptions:
+    for i, sub in enumerate(subscriptions):
+        if not isinstance(sub, dict):
+            raise ValueError(
+                f"订阅 #{i + 1} 格式错误，应为字典 (Subscription #{i + 1} is not a dict)"
+                " — 请参考 subscriptions.example.yaml"
+            )
+        if "name" not in sub or not sub["name"]:
+            raise ValueError(
+                f"订阅 #{i + 1} 缺少 name 字段 (Subscription #{i + 1} missing 'name')"
+                " — 请参考 subscriptions.example.yaml"
+            )
+        if "url" not in sub or not sub["url"]:
+            raise ValueError(
+                f"订阅 #{i + 1} 缺少 url 字段 (Subscription #{i + 1} missing 'url')"
+                " — 请参考 subscriptions.example.yaml"
+            )
         name = sub["name"]
         entry = {
             "type": "http",
@@ -131,6 +146,21 @@ def _apply_chain_proxy(config, chain_cfg, provider_names):
     residential_names = []
 
     for i, cp in enumerate(chain_proxies):
+        if not isinstance(cp, dict):
+            raise ValueError(
+                f"住宅代理 #{i + 1} 格式错误 (Chain proxy #{i + 1} is not a dict)"
+                " — 请参考 override.example.yaml"
+            )
+        if "server" not in cp or not cp["server"]:
+            raise ValueError(
+                f"住宅代理 #{i + 1} 缺少 server 字段 (Chain proxy #{i + 1} missing 'server')"
+                " — 请参考 override.example.yaml"
+            )
+        if "port" not in cp:
+            raise ValueError(
+                f"住宅代理 #{i + 1} 缺少 port 字段 (Chain proxy #{i + 1} missing 'port')"
+                " — 请参考 override.example.yaml"
+            )
         name = cp.get("name", f"🏠 住宅{i + 1}")
         proxy = {
             "name": name,
