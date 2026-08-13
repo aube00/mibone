@@ -1,18 +1,10 @@
 """Config generation: template + subscriptions + override → bin/config.yaml"""
 
-import copy
-import re
 from pathlib import Path
 
 from mibone.utils import load_yaml, save_yaml, print_ok, print_warn, print_err
 
 PROVIDERS_MARKER = "__PROVIDERS__"
-
-JUNK_PROXY_PATTERN = re.compile(
-    r"剩余|到期|流量|过期|套餐|官网|公告|群|频道|客服|节点|重置|"
-    r"expire|traffic|remain|plan|website|announce|channel|support|reset",
-    re.IGNORECASE,
-)
 
 
 def generate_config(base_dir):

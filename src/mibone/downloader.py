@@ -1,6 +1,5 @@
 """Download mihomo, winsw, zashboard, and GeoX data files."""
 
-import hashlib
 import json
 import platform
 import shutil

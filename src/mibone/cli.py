@@ -7,6 +7,7 @@ from mibone.utils import (
     print_bi,
     print_ok,
     print_err,
+    print_warn,
     DASHBOARD_PORT,
     MIXED_PORT,
     SOCKS_PORT,
