@@ -43,3 +43,7 @@ Desktop.ini
 
 # Local bug log (kept private, never published)
 /docs/bugs
+
+# Local screenshots and Playwright MCP output (never published)
+/*.png
+.playwright-mcp/
