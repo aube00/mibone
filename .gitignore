@@ -40,3 +40,6 @@ build/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local bug log (kept private, never published)
+/docs/bugs
