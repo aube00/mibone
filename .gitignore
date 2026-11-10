@@ -1,7 +1,9 @@
 # Claude Code harness (not part of the project deliverable)
 CLAUDE.md
+AGENTS.md
 TASKS.md
 rules/
+rules
 .claude/
 
 # User config (contains subscription URLs and secrets)
